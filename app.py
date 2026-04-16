@@ -8,6 +8,7 @@ st.set_page_config(
     page_icon="https://thesleepcompany.in/cdn/shop/files/fav-icon_32x32.png", 
     layout="wide"
 )
+st.title ("TSC Agent Database")
 
 # --- THE SLEEP COMPANY BRANDING ---
 brand_navy = "#102a51"
