@@ -50,9 +50,9 @@ def sec_to_hms(seconds):
 # --- SIDEBAR UPLOADS ---
 with st.sidebar:
     st.header("Upload Reports")
-    prod_file = st.file_uploader("1. Productivity Summary", type="csv")
-    sess_file = st.file_uploader("2. Session Details", type="csv")
-    sales_file = st.file_uploader("3. Custom Sales Report", type="csv")
+    prod_file = st.file_uploader("1. Productivity Summary (Agent Productivity Interval Report)", type="csv")
+    sess_file = st.file_uploader("2. Session Details (Agent Session Details Report)", type="csv")
+    sales_file = st.file_uploader("3. Custom Calls Report (Custom Report Sales)", type="csv")
 
 if prod_file and sess_file and sales_file:
     try:
