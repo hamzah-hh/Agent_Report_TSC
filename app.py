@@ -3,35 +3,32 @@ import pandas as pd
 import numpy as np
 
 # --- APP CONFIGURATION ---
-st.set_page_config(page_title="Agent Performance Automator", layout="wide")
-st.title("The Sleep Company Unified Agent Performance Tracker.")
-#st.markdown("Upload your 3 CSV files. This version is 'Error-Proof' and won't crash if a break category is missing.")
+st.set_page_config(
+    page_title="TSC | Agent Performance", 
+    page_icon="https://thesleepcompany.in/cdn/shop/files/fav-icon_32x32.png", 
+    layout="wide"
+)
+
 # --- THE SLEEP COMPANY BRANDING ---
 brand_navy = "#102a51"
 brand_copper = "#c59d5f"
 
 st.markdown(f"""
     <style>
-    /* Change sidebar color to Navy */
-    [data-testid="stSidebar"] {{
-        background-color: {brand_navy};
-    }}
-    [data-testid="stSidebar"] * {{
-        color: white;
-    }}
-    /* Change primary buttons to Copper */
+    [data-testid="stSidebar"] {{ background-color: {brand_navy}; }}
+    [data-testid="stSidebar"] * {{ color: white; }}
     div.stButton > button:first-child {{
         background-color: {brand_copper};
         color: white;
         border-radius: 5px;
         border: none;
     }}
-    /* Header colors */
-    h1, h2, h3 {{
-        color: {brand_navy};
-    }}
+    h1, h2, h3 {{ color: {brand_navy}; }}
     </style>
     """, unsafe_allow_html=True)
+
+st.title("📊 AI-Powered Report Automator")
+
 # --- HELPER FUNCTIONS ---
 def hms_to_sec(t):
     if pd.isna(t) or t == '0' or t == 0: return 0
@@ -51,13 +48,11 @@ def sec_to_hms(seconds):
     s = int(seconds % 60)
     return f"{h:02d}:{m:02d}:{s:02d}"
 
-# --- FILE UPLOADS ---
-col1, col2, col3 = st.columns(3)
-with col1:
+# --- SIDEBAR UPLOADS ---
+with st.sidebar:
+    st.header("Upload Reports")
     prod_file = st.file_uploader("1. Productivity Summary", type="csv")
-with col2:
     sess_file = st.file_uploader("2. Session Details", type="csv")
-with col3:
     sales_file = st.file_uploader("3. Custom Sales Report", type="csv")
 
 if prod_file and sess_file and sales_file:
@@ -83,8 +78,6 @@ if prod_file and sess_file and sales_file:
 
         # 3. Process Individual Breaks
         sess['Break_Sec'] = sess['Break Duration'].apply(hms_to_sec)
-        
-        # Filter out empty break reasons before pivoting
         sess_breaks = sess.dropna(subset=['Break Reason']).copy()
         break_pivot = sess_breaks.pivot_table(
             index=['Date', 'User ID'], 
@@ -94,7 +87,7 @@ if prod_file and sess_file and sales_file:
             fill_value=0
         ).reset_index()
 
-        # 4. Process Sales Metrics (Talk Time >= 1s)
+        # 4. Process Sales Metrics
         sales['Talk_Sec'] = sales['Talk Time'].apply(hms_to_sec)
         sales['Is_Connected'] = sales['Talk_Sec'] >= 1
         
@@ -109,20 +102,27 @@ if prod_file and sess_file and sales_file:
         ).reset_index()
         sales_final = pd.merge(sales_agg, conn_agg, on=['Date', 'User ID'], how='left').fillna(0)
 
-        # 5. Process Productivity Summary
-        prod_time_cols = ['Total Staffed Duration', 'Total Ready Duration', 'Total Break Duration', 
-                          'Total Idle Time', 'Total Talk Time in Interval', 'Total ACW Duration in Interval']
+        # 5. Process Productivity (Mapping Actual CSV Names to Your Report Names)
+        # We explicitly link your required names to the CSV's long names
+        mapping = {
+            'Total Staffed Duration': 'Staffed Duration',
+            'Total Ready Duration': 'Ready Duration',
+            'Total Break Duration': 'Total Break Duration',
+            'Total Idle Time': 'Idle Time',
+            'Total Talk Time in Interval': 'Talk Time',
+            'Total ACW Duration in Interval': 'ACW Duration'
+        }
         
-        for col in prod_time_cols:
-            prod[col + '_sec'] = prod[col].apply(hms_to_sec)
+        for csv_col, target_name in mapping.items():
+            if csv_col in prod.columns:
+                prod[target_name + '_sec'] = prod[csv_col].apply(hms_to_sec)
+            else:
+                st.warning(f"Note: '{csv_col}' not found in file. Using 0s.")
+                prod[target_name + '_sec'] = 0
 
+        # Aggregate Productivity
         prod_final = prod.groupby(['Date', 'User ID', 'User Name']).agg({
-            'Total Staffed Duration_sec': 'sum',
-            'Total Ready Duration_sec': 'sum',
-            'Total Break Duration_sec': 'sum',
-            'Total Idle Time_sec': 'sum',
-            'Total Talk Time in Interval_sec': 'sum',
-            'Total ACW Duration in Interval_sec': 'sum'
+            f"{name}_sec": "sum" for name in mapping.values()
         }).reset_index()
 
         # 6. Final Merge
@@ -130,42 +130,41 @@ if prod_file and sess_file and sales_file:
         final_df = pd.merge(final_df, break_pivot, on=['Date', 'User ID'], how='left').fillna(0)
 
         # 7. Convert Sec to HH:MM:SS
-        # Identify all time-based columns (Base + Dynamic Breaks)
-        base_sec_cols = [c for c in final_df.columns if c.endswith('_sec')]
+        sec_cols = [c for c in final_df.columns if c.endswith('_sec')]
         break_cols = [c for c in break_pivot.columns if c not in ['Date', 'User ID']]
         
-        for col in base_sec_cols + break_cols:
-            new_name = col.replace('_sec', '').replace('Total ', '')
-            final_df[new_name] = final_df[col].apply(sec_to_hms)
+        for col in sec_cols + break_cols:
+            clean_name = col.replace('_sec', '').replace('Total ', '')
+            final_df[clean_name] = final_df[col].apply(sec_to_hms)
 
-        # 8. SAFE COLUMN SELECTION
-        # We define what we WANT to see, but the code will only pick what actually EXISTS
+        # 8. Column Selection
         desired_order = [
-            'Date', 'User Name', 'User ID', 'Staffed Duration', 'Ready Duration', 'Break Duration',
+            'Date', 'User Name', 'User ID', 'Staffed Duration', 'Ready Duration', 'Total Break Duration',
             'After Call Work', 'Lunch', 'First Break', 'Last Break', 'Meeting', 'Miscellaneous',
             'Idle Time', 'Talk Time', 'ACW Duration', 
             'Total_OB_Calls', 'Connected_OB_Calls', 'Unq_OB_Calls', 'Unq_CC_Calls'
         ]
         
-        # This line prevents the KeyError: it only takes columns that exist in the final_df
         final_columns = [col for col in desired_order if col in final_df.columns]
-        
         result = final_df[final_columns].copy()
         
-        # Convert numeric counts to integers for clean display
+        # Numeric Clean up
         count_cols = ['Total_OB_Calls', 'Connected_OB_Calls', 'Unq_OB_Calls', 'Unq_CC_Calls']
         for col in count_cols:
             if col in result.columns:
                 result[col] = result[col].astype(int)
 
-        # Show Results
-        st.success("Success! Report generated below.")
-        st.dataframe(result)
+        # KPI Metrics
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Active Agents", len(result['User ID'].unique()))
+        m2.metric("Total Connected Calls", result['Connected_OB_Calls'].sum())
+        m3.metric("Unique Customers Reached", result['Unq_CC_Calls'].sum())
 
-        # Download Button
+        st.success("Report Generated Successfully!")
+        st.dataframe(result, use_container_width=True)
+
         csv = result.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Download Final Database", data=csv, file_name="Agent_Performance_Database.csv", mime="text/csv")
+        st.download_button("📥 Download Performance Database", data=csv, file_name="TSC_Performance_Report.csv", mime="text/csv")
 
     except Exception as e:
         st.error(f"Error: {e}")
-        st.info("Check if you uploaded the files in the correct boxes.")
