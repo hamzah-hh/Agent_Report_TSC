@@ -4,8 +4,8 @@ import numpy as np
 
 # --- APP CONFIGURATION ---
 st.set_page_config(page_title="Agent Performance Automator", layout="wide")
-st.title("📊 AI-Powered Report Automator")
-st.markdown("Upload your 3 CSV files. This version is 'Error-Proof' and won't crash if a break category is missing.")
+st.title("The Sleep Company Unified Agent Performance Tracker.")
+#st.markdown("Upload your 3 CSV files. This version is 'Error-Proof' and won't crash if a break category is missing.")
 # --- THE SLEEP COMPANY BRANDING ---
 brand_navy = "#102a51"
 brand_copper = "#c59d5f"
