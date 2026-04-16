@@ -28,8 +28,6 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("📊 AI-Powered Report Automator")
-
 # --- HELPER FUNCTIONS ---
 def hms_to_sec(t):
     if pd.isna(t) or t == '0' or t == 0: return 0
