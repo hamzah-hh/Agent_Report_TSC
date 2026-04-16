@@ -6,7 +6,32 @@ import numpy as np
 st.set_page_config(page_title="Agent Performance Automator", layout="wide")
 st.title("📊 AI-Powered Report Automator")
 st.markdown("Upload your 3 CSV files. This version is 'Error-Proof' and won't crash if a break category is missing.")
+# --- THE SLEEP COMPANY BRANDING ---
+brand_navy = "#102a51"
+brand_copper = "#c59d5f"
 
+st.markdown(f"""
+    <style>
+    /* Change sidebar color to Navy */
+    [data-testid="stSidebar"] {{
+        background-color: {brand_navy};
+    }}
+    [data-testid="stSidebar"] * {{
+        color: white;
+    }}
+    /* Change primary buttons to Copper */
+    div.stButton > button:first-child {{
+        background-color: {brand_copper};
+        color: white;
+        border-radius: 5px;
+        border: none;
+    }}
+    /* Header colors */
+    h1, h2, h3 {{
+        color: {brand_navy};
+    }}
+    </style>
+    """, unsafe_allow_html=True)
 # --- HELPER FUNCTIONS ---
 def hms_to_sec(t):
     if pd.isna(t) or t == '0' or t == 0: return 0
